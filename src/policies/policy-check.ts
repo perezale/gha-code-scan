@@ -153,7 +153,7 @@ export abstract class PolicyCheck {
     return text.length > this.MAX_GH_API_CONTENT_SIZE;
   }
 
-  protected async concatPolicyArtifactURLToPolicyCheck(details: string, artifactId: number): Promise<string> {
+  protected concatPolicyArtifactURLToPolicyCheck(details: string, artifactId: number): string {
     const link =
       `\n\nDownload the ` +
       `[${this.getPolicyName()} Result](${context.serverUrl}/` +
