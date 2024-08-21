@@ -195,11 +195,17 @@ export abstract class PolicyCheck {
 
   async loadFirstWorkflowRun(){
 
+    const workflowRun = await this.octokit.rest.actions.getWorkflowRun({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      run_id: context.runId
+    })
+
     const runs = await this.octokit.rest.actions.listWorkflowRuns({
       owner: context.repo.owner,
       repo: context.repo.repo,
       head_sha: getSHA(),
-      workflow_id: context.workflow
+      workflow_id: workflowRun.data.workflow_id
     });
 
     core.info(`ListWorkflowRuns: ${JSON.stringify(runs.data)}`);
