@@ -21,7 +21,7 @@
    THE SOFTWARE.
  */
 
-import { createCommentOnPR, isPullRequest } from './utils/github.utils';
+import { createCommentOnPR, isPullRequest, loadFirstWorkflowRun } from './utils/github.utils';
 import { generateJobSummary, generatePRSummary } from './services/report.service';
 import * as core from '@actions/core';
 import * as inputs from './app.input';
