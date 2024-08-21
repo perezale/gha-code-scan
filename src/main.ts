@@ -43,9 +43,8 @@ export async function run(): Promise<void> {
 
     //Read declared policies on input parameter 'policies' and create an instance for each one.
     const policies = policyManager.getPolicies();
-    const firstRunId = await loadFirstWorkflowRun();
     for (const policy of policies) {
-      await policy.start(firstRunId);
+      await policy.start();
     }
 
     // run scan
