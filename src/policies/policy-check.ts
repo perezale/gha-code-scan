@@ -22,6 +22,7 @@
  */
 
 import { context, getOctokit } from '@actions/github';
+import { Endpoints, GetResponseTypeFromEndpointMethod } from '@octokit/types';
 import { promises as fs } from 'fs';
 import * as core from '@actions/core';
 import { getSHA } from '../utils/github.utils';
@@ -49,6 +50,8 @@ export enum STATUS {
   FINISHED = 'FINISHED'
 }
 
+type listWorkflowRunsResponse =  Endpoints["GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs"]["response"];
+
 export abstract class PolicyCheck {
   private readonly MAX_GH_API_CONTENT_SIZE = 65534;
 
@@ -64,12 +67,16 @@ export abstract class PolicyCheck {
 
   private _conclusion: CONCLUSION;
 
+  private _firstRun: listWorkflowRunsResponse["data"]["workflow_runs"][number] | null;
+
   constructor(checkName: string) {
     this.octokit = getOctokit(inputs.GITHUB_TOKEN);
     this.checkName = checkName;
     this._status = STATUS.UNINITIALIZED;
     this._conclusion = CONCLUSION.Neutral;
     this.checkRunId = -1;
+
+    this._firstRun = null;
   }
 
   abstract artifactPolicyFileName(): string;
@@ -88,6 +95,17 @@ export abstract class PolicyCheck {
     this._raw = result.data;
 
     this._status = STATUS.INITIALIZED;
+
+    this._firstRun = await this.getFirstRun(context.repo.owner, context.repo.repo)
+    
+    if(this._firstRun){
+      core.info(`Artifacts URL: ${this._firstRun.artifacts_url}`);
+      core.info(`Jobs URL: ${this._firstRun.jobs_url}`);
+    }
+    else {
+      core.info('First Run not found')
+    }
+
     return result.data;
   }
 
@@ -104,7 +122,7 @@ export abstract class PolicyCheck {
   }
 
   get url(): string {
-    return `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}/job/${this.raw.id}`;
+    return `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${this._firstRun?.id}/job/${this.raw.id}`;
   }
 
   async run(scannerResults: ScannerResults): Promise<void> {
@@ -183,13 +201,11 @@ export abstract class PolicyCheck {
   }
 
   protected async concatPolicyArtifactURLToPolicyCheck(details: string, artifactId: number): Promise<string> {
-    const firstRun = await this.getFirstRun(context.repo.owner, context.repo.repo);
-    core.debug(`First run found: ${firstRun?.id}`);
     const link =
       `\n\nDownload the ` +
       `[${this.getPolicyName()} Result](${context.serverUrl}/` +
       `${context.repo.owner}/${context.repo.repo}/actions/runs/` +
-      `${firstRun?.id}/artifacts/${artifactId})`;
+      `${context.runId}/artifacts/${artifactId})`;
 
     let text = details + link;
 
@@ -202,7 +218,7 @@ export abstract class PolicyCheck {
         `See console logs for details or download the ` +
         `[${this.getPolicyName()} Result](${context.serverUrl}/` +
         `${context.repo.owner}/${context.repo.repo}/actions/runs/` +
-        `${firstRun?.id}/artifacts/${artifactId})`;
+        `${context.runId}/artifacts/${artifactId})`;
     }
 
     return text;
