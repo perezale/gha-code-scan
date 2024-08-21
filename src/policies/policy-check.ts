@@ -152,23 +152,23 @@ export abstract class PolicyCheck {
     return text.length > this.MAX_GH_API_CONTENT_SIZE;
   }
 
-  async getFirstRun(owner, repo) {
+  async getFirstRun(owner: string, repo: string) {
     const sha = getSHA();
     
-    const runs = await octokit.rest.checks.listForRef({
+    const runs = await this.octokit.rest.checks.listForRef({
       owner,
       repo,
-      ref,
+      ref: sha,
     });
   
     // Filter by the given SHA
-    const filteredRuns = runs.data.workflow_runs.filter(
+    const filteredRuns = runs.data.check_runs.filter(
       (run) => run.head_sha === sha
     );
   
     // Sort by creation date to find the first run
     const sortedRuns = filteredRuns.sort(
-      (a, b) => new Date(a.created_at) - new Date(b.created_at)
+      (a, b) => a.started_at && b.started_at ? new Date(a.started_at).getTime() - new Date(b.started_at).getTime() : 0
     );
   
     return sortedRuns.length ? sortedRuns[0] : null;

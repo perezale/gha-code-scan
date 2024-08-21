@@ -32,7 +32,7 @@ export function isPullRequest(): boolean {
 }
 
 export function getSHA(): string {
-  let sha = context.event.workflow_run.head_sha;
+  let sha = context.sha;
   if (isPullRequest()) {
     const pull = context.payload.pull_request;
     if (pull?.head.sha) {
