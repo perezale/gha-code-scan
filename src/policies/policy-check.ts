@@ -155,20 +155,28 @@ export abstract class PolicyCheck {
   async getFirstRun(owner: string, repo: string) {
     const sha = getSHA();
     
-    const runs = await this.octokit.rest.checks.listForRef({
+
+    const workflowRun = await this.octokit.rest.actions.getWorkflowRun({
       owner,
       repo,
-      ref: sha,
+      run_id: context.runId
+    })
+
+    const runs = await this.octokit.rest.actions.listWorkflowRuns({
+      owner,
+      repo,
+      head_sha: sha,
+      workflow_id: workflowRun.data.workflow_id
     });
   
     // Filter by the given SHA
-    const filteredRuns = runs.data.check_runs.filter(
+    const filteredRuns = runs.data.workflow_runs.filter(
       (run) => run.head_sha === sha
     );
   
     // Sort by creation date to find the first run
     const sortedRuns = filteredRuns.sort(
-      (a, b) => a.started_at && b.started_at ? new Date(a.started_at).getTime() - new Date(b.started_at).getTime() : 0
+      (a, b) => a.created_at && b.created_at ? new Date(a.created_at).getTime() - new Date(b.created_at).getTime() : 0
     );
   
     return sortedRuns.length ? sortedRuns[0] : null;
@@ -176,7 +184,7 @@ export abstract class PolicyCheck {
 
   protected async concatPolicyArtifactURLToPolicyCheck(details: string, artifactId: number): Promise<string> {
     const firstRun = await this.getFirstRun(context.repo.owner, context.repo.repo);
-    core.debug(`First run found: ${firstRun?.id}}`);
+    core.debug(`First run found: ${firstRun?.id}`);
     const link =
       `\n\nDownload the ` +
       `[${this.getPolicyName()} Result](${context.serverUrl}/` +
