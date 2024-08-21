@@ -79,7 +79,7 @@ export abstract class PolicyCheck {
 
   abstract getPolicyName(): string;
 
-  async start(): Promise<any> {
+  async start(firstRunId: number): Promise<any> {
     const result = await this.octokit.rest.checks.create({
       owner: context.repo.owner,
       repo: context.repo.repo,
@@ -87,9 +87,8 @@ export abstract class PolicyCheck {
       head_sha: getSHA()
     });
 
-    await this.loadFirstWorkflowRun();
-
     this.checkRunId = result.data.id;
+    this._firstRunId = firstRunId;
     this._raw = result.data;
 
     this._status = STATUS.INITIALIZED;
@@ -193,34 +192,4 @@ export abstract class PolicyCheck {
     );
   }
 
-  async loadFirstWorkflowRun(){
-
-    const workflowRun = await this.octokit.rest.actions.getWorkflowRun({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      run_id: context.runId
-    })
-
-    const runs = await this.octokit.rest.actions.listWorkflowRuns({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      head_sha: getSHA(),
-      workflow_id: workflowRun.data.workflow_id
-    });
-
-    core.info(`ListWorkflowRuns: ${JSON.stringify(runs.data)}`);
-    // Sort by creation date to find the first run
-    const sortedRuns = runs.data.workflow_runs.sort(
-      (a, b) => a.created_at && b.created_at ? new Date(a.created_at).getTime() - new Date(b.created_at).getTime() : 0
-    );
-
-    const firstRun = sortedRuns.length ? sortedRuns[0] : null;
-
-    this._firstRunId = firstRun?.workflow_id ?? -1;
-
-    core.info(`firtRunId: ${this._firstRunId}`);
-
-    return this._firstRunId;
-  
-  }
 }

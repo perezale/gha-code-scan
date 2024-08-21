@@ -21,7 +21,7 @@
    THE SOFTWARE.
  */
 
-import { createCommentOnPR, isPullRequest } from './utils/github.utils';
+import { createCommentOnPR, isPullRequest, loadFirstWorkflowRun } from './utils/github.utils';
 import { generateJobSummary, generatePRSummary } from './services/report.service';
 import * as core from '@actions/core';
 import * as inputs from './app.input';
@@ -43,8 +43,9 @@ export async function run(): Promise<void> {
 
     //Read declared policies on input parameter 'policies' and create an instance for each one.
     const policies = policyManager.getPolicies();
+    const firstRunId = await loadFirstWorkflowRun();
     for (const policy of policies) {
-      await policy.start();
+      await policy.start(firstRunId);
     }
 
     // run scan
