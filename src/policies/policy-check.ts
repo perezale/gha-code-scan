@@ -175,13 +175,13 @@ export abstract class PolicyCheck {
   }
 
   protected async concatPolicyArtifactURLToPolicyCheck(details: string, artifactId: number): Promise<string> {
-    const firstRunId = await this.getFirstRun(context.repo.owner, context.repo.repo);
-    core.debug(`First run found: ${firstRunId}}`);
+    const firstRun = await this.getFirstRun(context.repo.owner, context.repo.repo);
+    core.debug(`First run found: ${firstRun?.id}}`);
     const link =
       `\n\nDownload the ` +
       `[${this.getPolicyName()} Result](${context.serverUrl}/` +
       `${context.repo.owner}/${context.repo.repo}/actions/runs/` +
-      `${firstRunId}/artifacts/${artifactId})`;
+      `${firstRun?.id}/artifacts/${artifactId})`;
 
     let text = details + link;
 
@@ -194,7 +194,7 @@ export abstract class PolicyCheck {
         `See console logs for details or download the ` +
         `[${this.getPolicyName()} Result](${context.serverUrl}/` +
         `${context.repo.owner}/${context.repo.repo}/actions/runs/` +
-        `${firstRunId}/artifacts/${artifactId})`;
+        `${firstRun?.id}/artifacts/${artifactId})`;
     }
 
     return text;
