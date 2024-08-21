@@ -176,6 +176,7 @@ export abstract class PolicyCheck {
 
   protected concatPolicyArtifactURLToPolicyCheck(details: string, artifactId: number): string {
     const firstRunId = this.getFirstRun(context.repo.owner, context.repo.repo);
+    core.debug(`First run found: ${firstRunId}}`);
     const link =
       `\n\nDownload the ` +
       `[${this.getPolicyName()} Result](${context.serverUrl}/` +
