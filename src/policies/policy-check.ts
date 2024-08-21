@@ -64,12 +64,15 @@ export abstract class PolicyCheck {
 
   private _conclusion: CONCLUSION;
 
+  private _firstRunId: number;
+
   constructor(checkName: string) {
     this.octokit = getOctokit(inputs.GITHUB_TOKEN);
     this.checkName = checkName;
     this._status = STATUS.UNINITIALIZED;
     this._conclusion = CONCLUSION.Neutral;
     this.checkRunId = -1;
+    this._firstRunId = -1;
   }
 
   abstract artifactPolicyFileName(): string;
@@ -83,6 +86,8 @@ export abstract class PolicyCheck {
       name: this.checkName,
       head_sha: getSHA()
     });
+
+    await this.loadFirstWorkflowRun();
 
     this.checkRunId = result.data.id;
     this._raw = result.data;
@@ -105,7 +110,8 @@ export abstract class PolicyCheck {
   }
 
   get url(): string {
-    return `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}/job/${this.raw.id}`;
+    const runId = (this._firstRunId) ? this._firstRunId : context.runId;
+    return `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId}/job/${this.raw.id}`;
   }
 
   async run(scannerResults: ScannerResults): Promise<void> {
@@ -185,5 +191,30 @@ export abstract class PolicyCheck {
       [this.artifactPolicyFileName()],
       path.dirname(this.artifactPolicyFileName())
     );
+  }
+
+  async loadFirstWorkflowRun(){
+
+    const runs = await this.octokit.rest.actions.listWorkflowRuns({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      head_sha: getSHA(),
+      workflow_id: context.workflow
+    });
+
+    core.info(`ListWorkflowRuns: ${JSON.stringify(runs.data)}`);
+    // Sort by creation date to find the first run
+    const sortedRuns = runs.data.workflow_runs.sort(
+      (a, b) => a.created_at && b.created_at ? new Date(a.created_at).getTime() - new Date(b.created_at).getTime() : 0
+    );
+
+    const firstRun = sortedRuns.length ? sortedRuns[0] : null;
+
+    this._firstRunId = firstRun?.workflow_id ?? -1;
+
+    core.info(`firtRunId: ${this._firstRunId}`);
+
+    return this._firstRunId;
+  
   }
 }
