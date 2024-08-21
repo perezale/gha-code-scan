@@ -22,7 +22,6 @@
  */
 
 import { context, getOctokit } from '@actions/github';
-import { Endpoints, GetResponseTypeFromEndpointMethod } from '@octokit/types';
 import { promises as fs } from 'fs';
 import * as core from '@actions/core';
 import { getSHA } from '../utils/github.utils';
@@ -50,7 +49,7 @@ export enum STATUS {
   FINISHED = 'FINISHED'
 }
 
-type listWorkflowRunsResponse =  Endpoints["GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs"]["response"];
+//type listWorkflowRunsResponse =  Endpoints["GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs"]["response"];
 
 export abstract class PolicyCheck {
   private readonly MAX_GH_API_CONTENT_SIZE = 65534;
@@ -67,7 +66,8 @@ export abstract class PolicyCheck {
 
   private _conclusion: CONCLUSION;
 
-  private _firstRun: listWorkflowRunsResponse["data"]["workflow_runs"][number] | null;
+  //private _firstRun: listWorkflowRunsResponse["data"]["workflow_runs"][number] | null;
+  private _firstRun: any;
 
   constructor(checkName: string) {
     this.octokit = getOctokit(inputs.GITHUB_TOKEN);
