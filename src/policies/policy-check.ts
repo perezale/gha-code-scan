@@ -67,7 +67,7 @@ export abstract class PolicyCheck {
   private _conclusion: CONCLUSION;
 
   //private _firstRun: listWorkflowRunsResponse["data"]["workflow_runs"][number] | null;
-  //private _firstRun: any;
+  private _firstRun: any;
 
   constructor(checkName: string) {
     this.octokit = getOctokit(inputs.GITHUB_TOKEN);
@@ -95,6 +95,13 @@ export abstract class PolicyCheck {
     this._raw = result.data;
 
     this._status = STATUS.INITIALIZED;
+
+    this._firstRun = this.getFirstRun();
+    if(this._firstRun){
+      core.info(this._firstRun);
+      core.info(`Artifacts URL: ${this._firstRun.artifacts_url}`);
+      core.info(`Jobs URL: ${this._firstRun.jobs_url}`);
+    }
 
     return result.data;
   }
@@ -160,9 +167,12 @@ export abstract class PolicyCheck {
     return text.length > this.MAX_GH_API_CONTENT_SIZE;
   }
 
-  async getFirstRun(owner: string, repo: string) {
+
+
+  async getFirstRun() {
     const sha = getSHA();
-    
+    const owner = context.repo.owner;
+    const repo = context.repo.repo;
 
     const workflowRun = await this.octokit.rest.actions.getWorkflowRun({
       owner,
@@ -170,24 +180,28 @@ export abstract class PolicyCheck {
       run_id: context.runId
     })
 
-    const runs = await this.octokit.rest.actions.listWorkflowRuns({
-      owner,
-      repo,
-      head_sha: sha,
-      workflow_id: workflowRun.data.workflow_id
-    });
-  
-    // Filter by the given SHA
-    const filteredRuns = runs.data.workflow_runs.filter(
-      (run) => run.head_sha === sha
-    );
-  
-    // Sort by creation date to find the first run
-    const sortedRuns = filteredRuns.sort(
-      (a, b) => a.created_at && b.created_at ? new Date(a.created_at).getTime() - new Date(b.created_at).getTime() : 0
-    );
-  
-    return sortedRuns.length ? sortedRuns[0] : null;
+    if(workflowRun){
+      const runs = await this.octokit.rest.actions.listWorkflowRuns({
+        owner,
+        repo,
+        head_sha: sha,
+        workflow_id: workflowRun.data.workflow_id
+      });
+    
+      // Filter by the given SHA
+      const filteredRuns = runs.data.workflow_runs.filter(
+        (run) => run.head_sha === sha
+      );
+    
+      // Sort by creation date to find the first run
+      const sortedRuns = filteredRuns.sort(
+        (a, b) => a.created_at && b.created_at ? new Date(a.created_at).getTime() - new Date(b.created_at).getTime() : 0
+      );
+
+      return sortedRuns.length ? sortedRuns[0] : null;
+    }
+    
+    return null;
   }
 
   protected async concatPolicyArtifactURLToPolicyCheck(details: string, artifactId: number): Promise<string> {
