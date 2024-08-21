@@ -86,6 +86,9 @@
    
        this.checkRunId = result.data.id;
        this._raw = result.data;
+
+       const firstRun = await this.loadFirstRun(context.repo.owner, context.repo.repo);
+       core.info(`First run found: ${firstRun?.id}`);
    
        this._status = STATUS.INITIALIZED;
        return result.data;
@@ -102,9 +105,11 @@
      get raw(): any {
        return this._raw;
      }
+
+     private _firstRunId:number = -1;
    
      get url(): string {
-       return `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}/job/${this.raw.id}`;
+       return `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${this._firstRunId}/job/${this.raw.id}`;
      }
    
      async run(scannerResults: ScannerResults): Promise<void> {
@@ -152,9 +157,8 @@
        return text.length > this.MAX_GH_API_CONTENT_SIZE;
      }
    
-     async getFirstRun(owner: string, repo: string) {
+     async loadFirstRun(owner: string, repo: string) {
        const sha = getSHA();
-       
    
        const workflowRun = await this.octokit.rest.actions.getWorkflowRun({
          owner,
@@ -168,6 +172,8 @@
          head_sha: sha,
          workflow_id: workflowRun.data.workflow_id
        });
+
+       core.info(JSON.stringify(runs));
      
        // Filter by the given SHA
        const filteredRuns = runs.data.workflow_runs.filter(
@@ -183,13 +189,12 @@
      }
    
      protected async concatPolicyArtifactURLToPolicyCheck(details: string, artifactId: number): Promise<string> {
-       const firstRun = await this.getFirstRun(context.repo.owner, context.repo.repo);
-       core.debug(`First run found: ${firstRun?.id}`);
+       
        const link =
          `\n\nDownload the ` +
          `[${this.getPolicyName()} Result](${context.serverUrl}/` +
          `${context.repo.owner}/${context.repo.repo}/actions/runs/` +
-         `${firstRun?.id}/artifacts/${artifactId})`;
+         `${context.runId}/artifacts/${artifactId})`;
    
        let text = details + link;
    
@@ -202,7 +207,7 @@
            `See console logs for details or download the ` +
            `[${this.getPolicyName()} Result](${context.serverUrl}/` +
            `${context.repo.owner}/${context.repo.repo}/actions/runs/` +
-           `${firstRun?.id}/artifacts/${artifactId})`;
+           `${context.runId}/artifacts/${artifactId})`;
        }
    
        return text;
