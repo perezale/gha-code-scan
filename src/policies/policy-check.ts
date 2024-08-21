@@ -63,6 +63,8 @@
      private _status: STATUS;
    
      private _conclusion: CONCLUSION;
+
+     private _firstRunId:number = -1;
    
      constructor(checkName: string) {
        this.octokit = getOctokit(inputs.GITHUB_TOKEN);
@@ -89,6 +91,8 @@
 
        const firstRun = await this.loadFirstRun(context.repo.owner, context.repo.repo);
        core.info(`First run found: ${firstRun?.id}`);
+       this._firstRunId = firstRun?.id || -1;
+
    
        this._status = STATUS.INITIALIZED;
        return result.data;
@@ -105,8 +109,6 @@
      get raw(): any {
        return this._raw;
      }
-
-     private _firstRunId:number = -1;
    
      get url(): string {
        return `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${this._firstRunId}/job/${this.raw.id}`;
@@ -172,8 +174,6 @@
          head_sha: sha,
          workflow_id: workflowRun.data.workflow_id
        });
-
-       core.info(JSON.stringify(runs));
      
        // Filter by the given SHA
        const filteredRuns = runs.data.workflow_runs.filter(
