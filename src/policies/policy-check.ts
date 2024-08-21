@@ -174,8 +174,8 @@ export abstract class PolicyCheck {
     return sortedRuns.length ? sortedRuns[0] : null;
   }
 
-  protected concatPolicyArtifactURLToPolicyCheck(details: string, artifactId: number): string {
-    const firstRunId = this.getFirstRun(context.repo.owner, context.repo.repo);
+  protected async concatPolicyArtifactURLToPolicyCheck(details: string, artifactId: number): Promise<string> {
+    const firstRunId = await this.getFirstRun(context.repo.owner, context.repo.repo);
     core.debug(`First run found: ${firstRunId}}`);
     const link =
       `\n\nDownload the ` +
