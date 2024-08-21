@@ -152,12 +152,35 @@ export abstract class PolicyCheck {
     return text.length > this.MAX_GH_API_CONTENT_SIZE;
   }
 
+  async getFirstRun(owner, repo) {
+    const sha = getSHA();
+    
+    const runs = await octokit.rest.checks.listForRef({
+      owner,
+      repo,
+      ref,
+    });
+  
+    // Filter by the given SHA
+    const filteredRuns = runs.data.workflow_runs.filter(
+      (run) => run.head_sha === sha
+    );
+  
+    // Sort by creation date to find the first run
+    const sortedRuns = filteredRuns.sort(
+      (a, b) => new Date(a.created_at) - new Date(b.created_at)
+    );
+  
+    return sortedRuns.length ? sortedRuns[0] : null;
+  }
+
   protected concatPolicyArtifactURLToPolicyCheck(details: string, artifactId: number): string {
+    const firstRunId = this.getFirstRun(context.repo.owner, context.repo.repo);
     const link =
       `\n\nDownload the ` +
       `[${this.getPolicyName()} Result](${context.serverUrl}/` +
       `${context.repo.owner}/${context.repo.repo}/actions/runs/` +
-      `${context.runId}/artifacts/${artifactId})`;
+      `${firstRunId}/artifacts/${artifactId})`;
 
     let text = details + link;
 
@@ -170,7 +193,7 @@ export abstract class PolicyCheck {
         `See console logs for details or download the ` +
         `[${this.getPolicyName()} Result](${context.serverUrl}/` +
         `${context.repo.owner}/${context.repo.repo}/actions/runs/` +
-        `${context.runId}/artifacts/${artifactId})`;
+        `${firstRunId}/artifacts/${artifactId})`;
     }
 
     return text;
